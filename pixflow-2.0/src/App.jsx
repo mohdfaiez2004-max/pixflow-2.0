@@ -25,7 +25,7 @@ async function Genarate() {
     Do not write HTML code. Write a clear, structured Markdown layout description only.`;
 
     const resArchitect = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${Apikey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${Apikey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,12 +182,12 @@ async function Genarate() {
                 <p className="text-sm text-slate-400 mb-2 leading-relaxed">{item.description}</p>
                 
                 <iframe 
-                  srcDoc={`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-900 text-white p-4">${item.html}</body></html>`} 
+                  srcDoc={item.html} 
                   className="w-full h-[500px] rounded-xl bg-slate-950 border border-slate-900 shadow-inner"
                 ></iframe>
                 
                 {/* ✅ FIXED: Arrow functions ke sath arguments pass kiye */}
-                <div className="flex gap-4 mt-2">
+                <div className="flex gap-4 mt-2">``
                   <button 
                     onClick={() => handleCopy(item.html)} 
                     className="flex-1 bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition font-medium text-sm flex items-center justify-center gap-2"
@@ -209,8 +209,6 @@ async function Genarate() {
     </div>
   );
 }
-
-  
 
  
 
