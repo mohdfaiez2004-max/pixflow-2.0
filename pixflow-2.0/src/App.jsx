@@ -19,10 +19,58 @@ async function Genarate() {
     // ==========================================
     // 🏛️ PHASE 1: ARCHITECT AGENT
     // ==========================================
-    let architectPrompt = `You are an expert UX/UI Architect. Create a detailed wireframe blueprint and copywriting plan for a website about: "${userinput}".
-    Break down the layout into semantic sections (e.g., Hero with catchy headline, Features grid, Testimonials, CTA, Footer). 
-    Specify modern color schemes, typography styles, and exact conversion-focused copy (headlines, button text). 
-    Do not write HTML code. Write a clear, structured Markdown layout description only.`;
+let architectPrompt = `
+You are a UX/UI Architect.
+
+Create a website design blueprint for: "${userinput}"
+
+Do NOT write HTML, CSS, JavaScript, or Tailwind.
+
+First define MANDATORY GLOBAL RULES that every coding agent must follow:
+- theme and visual style
+- color palette
+- typography
+- buttons and cards
+- border radius and shadows
+- spacing
+- animations
+
+Then divide the website into logical sections.
+
+For each section provide:
+- id
+- purpose
+- layout
+- key content/elements
+- CTA if needed
+
+All sections MUST follow the same Global Rules.
+Do not create different themes for different sections.
+
+Return ONLY valid JSON:
+
+{
+  "globalRules": {
+    "theme": "",
+    "colors": "",
+    "typography": "",
+    "components": "",
+    "spacing": "",
+    "animations": ""
+  },
+  "sections": [
+    {
+      "id": "header",
+      "purpose": "",
+      "layout": "",
+      "elements": "",
+      "cta": ""
+    }
+  ]
+}
+
+Return JSON only.
+`;
 
     const resArchitect = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${Apikey}`,
@@ -31,6 +79,9 @@ async function Genarate() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: architectPrompt }] }],
+           generationConfig: {
+        responseMimeType: "application/json",
+      },
         }),
       }
     );
@@ -46,16 +97,29 @@ async function Genarate() {
     // ==========================================
     // 💻 PHASE 2: CODER AGENT
     // ==========================================
-    let coderPrompt = `You are a Senior Frontend Engineer. Your task is to implement this exact UI blueprint into production-ready HTML code using Tailwind CSS:
-    
-    [BLUEPRINT START]
-    ${blueprint}
-    [BLUEPRINT END]
+let coderPrompt = `
+You are a Senior Frontend Engineer.
 
-    Strict Rules:
-    1. Output MUST be a strictly valid JSON format. It can be a JSON array containing objects or a single object with keys: "title", "description", and "html".
-    2. The "html" key must contain full component/page HTML code using beautiful Tailwind CSS layouts, premium styling, dark modes, animations, and icons where needed.
-    3. Do not wrap response in markdown blocks like \`\`\`json. Return pure JSON string only.`;
+Build a complete production-ready website from this design blueprint:
+
+${blueprint}
+
+Rules:
+- Follow the Global Rules and section layout exactly.
+- Keep the entire website visually consistent.
+- Use Tailwind CSS.
+- Build all planned sections in the correct order.
+- Create responsive, modern, polished UI.
+- Do not add explanations or markdown.
+
+Return ONLY valid JSON:
+
+{
+  "title": "website title",
+  "description": "short description",
+  "html": "complete HTML code"
+}
+`;
 
     const resCoder = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Apikey}`,
@@ -211,4 +275,4 @@ console.log("--- 💻 CODER FINAL UI DEPLOYED ---", jsonobject);
       )}
     </div>
   );
-} 
+}
