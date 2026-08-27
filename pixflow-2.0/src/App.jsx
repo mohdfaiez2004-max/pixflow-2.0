@@ -17,7 +17,7 @@ async function Genarate() {
     const Apikey = import.meta.env.VITE_GEMINI_KEY;
 
     // ==========================================
-    // 🏛️ PHASE 1: ARCHITECT AGENT (Gemini 2.5 Flash / Pro)
+    // 🏛️ PHASE 1: ARCHITECT AGENT
     // ==========================================
     let architectPrompt = `You are an expert UX/UI Architect. Create a detailed wireframe blueprint and copywriting plan for a website about: "${userinput}".
     Break down the layout into semantic sections (e.g., Hero with catchy headline, Features grid, Testimonials, CTA, Footer). 
@@ -40,12 +40,11 @@ async function Genarate() {
     const dataArchitect = await resArchitect.json();
     const blueprint = dataArchitect.candidates[0].content.parts[0].text;
     
-    // Architect ka plan state mein save kiya aur console par verify karne ke liye dala
     console.log("--- 🏛️ ARCHITECT BLUEPRINT GENERATED ---", blueprint);
-
     setArchitectPlan(blueprint);
+
     // ==========================================
-    // 💻 PHASE 2: CODER AGENT (Takes Blueprint -> Generates JSON with HTML)
+    // 💻 PHASE 2: CODER AGENT
     // ==========================================
     let coderPrompt = `You are a Senior Frontend Engineer. Your task is to implement this exact UI blueprint into production-ready HTML code using Tailwind CSS:
     
@@ -54,14 +53,12 @@ async function Genarate() {
     [BLUEPRINT END]
 
     Strict Rules:
-    1. Output MUST be a strictly valid JSON array containing exactly one object.
-    2. The object must have exactly three keys: "title", "description", and "html".
-    3. The "html" key must contain full component/page HTML code using beautiful Tailwind CSS layouts, premium styling, dark modes, animations, and icons where needed.
-    4. Do not wrap response in markdown blocks like \`\`\`json. Return pure JSON string only.`;
+    1. Output MUST be a strictly valid JSON format. It can be a JSON array containing objects or a single object with keys: "title", "description", and "html".
+    2. The "html" key must contain full component/page HTML code using beautiful Tailwind CSS layouts, premium styling, dark modes, animations, and icons where needed.
+    3. Do not wrap response in markdown blocks like \`\`\`json. Return pure JSON string only.`;
 
     const resCoder = await fetch(
-      
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Apikey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Apikey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,11 +72,20 @@ async function Genarate() {
     if (!resCoder.ok) throw new Error(`Coder API error: ${resCoder.status}`);
 
     const dataCoder = await resCoder.json();
-    const finalJsonText = dataCoder.candidates[0].content.parts[0].text;
+    let finalJsonText = dataCoder.candidates[0].content.parts[0].text;
     
-    const jsonobject = JSON.parse(finalJsonText);
-    setitems(jsonobject);
-    console.log("--- 💻 CODER FINAL UI DEPLOYED ---", jsonobject);
+    // Safety cleanup agar extra markdown aagya ho
+    finalJsonText = finalJsonText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+  const jsonobject = JSON.parse(finalJsonText);
+
+setitems(
+  Array.isArray(jsonobject)
+    ? jsonobject
+    : [jsonobject]
+);
+
+console.log("--- 💻 CODER FINAL UI DEPLOYED ---", jsonobject);
 
   } catch (err) {
     console.log(err);
@@ -88,7 +94,6 @@ async function Genarate() {
   setLoading(false);
 }
 
-  // ✅ FIXED: parameter ke saath htmlCode liya
   const handleCopy = async (htmlCode) => {
     const fullHtml = `<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-900 text-white p-4">${htmlCode}</body></html>`;
     try {
@@ -99,7 +104,6 @@ async function Genarate() {
     }
   };
 
-  // ✅ FIXED: pure element handling aur exact memory clean logic
   const handleDownload = (htmlCode, title) => {
     const fullHtml = `<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-slate-900 text-white p-4">${htmlCode}</body></html>`;
     const blob = new Blob([fullHtml], { type: "text/html" });
@@ -107,16 +111,16 @@ async function Genarate() {
     
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${title.toLowerCase().replace(/\s+/g, "-")}-design.html`;
+    a.download = `${(title || "design").toLowerCase().replace(/\s+/g, "-")}-design.html`;
     
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url); // Capital URL ke sath sahi nomenclature
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-900 font-sans text-slate-100 overflow-x-hidden">
+    <div className="min-h-screen w-screen bg-slate-900 font-sans text-slate-100 overflow-x-hidden">
       {/* Header */}
       <header className="w-full h-[80px] flex justify-between px-10 items-center border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -150,7 +154,7 @@ async function Genarate() {
             />
             <button  
               onClick={Genarate}
-              className="bg-indigo-600 hover:bg-indigo-700 font-semibold px-6 py-3 rounded-xl flex items-center justify-center min-w-[140px] transition shadow-lg shadow-indigo-600/20"
+              className="bg-indigo-600 hover:bg-indigo-700 font-semibold px-6 py-3 rounded-xl flex items-center justify-center min-w-[140px] transition shadow-lg shadow-indigo-600/20 cursor-pointer"
             >
               {loding ? (
                 <span className="flex items-center gap-2">
@@ -174,29 +178,28 @@ async function Genarate() {
 
       {/* Preview Grid */}
       {items.length > 0 && (
-        <div className="grid grid-cols-1 px-10 pb-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 px-10 pb-12 max-w-7xl mx-auto gap-6">
           {items.map((item, index) => {
             return (
-              <div key={index} className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-3">
-                <h3 className="text-xl font-bold text-indigo-400 tracking-tight">{item.title}</h3>
-                <p className="text-sm text-slate-400 mb-2 leading-relaxed">{item.description}</p>
-                
+              <div key={index} className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col gap-3">  
+                <h3 className="text-xl font-bold text-indigo-400 tracking-tight">{item.title || "Generated UI Component"}</h3>
+                <p className="text-sm text-slate-400 mb-2 leading-relaxed">{item.description || "Tailwind CSS layout generated by Pixflow AI."}</p>
+               
                 <iframe 
-                  srcDoc={item.html} 
-                  className="w-full h-[500px] rounded-xl bg-slate-950 border border-slate-900 shadow-inner"
-                ></iframe>
+                srcDoc={item.html} 
+                title={item.title || "Generated UI Preview"}    
+                className="w-full h-[500px] rounded-xl bg-slate-950 border border-slate-900 shadow-inner"></iframe>
                 
-                {/* ✅ FIXED: Arrow functions ke sath arguments pass kiye */}
-                <div className="flex gap-4 mt-2">``
+                <div className="flex gap-4 mt-2">
                   <button 
                     onClick={() => handleCopy(item.html)} 
-                    className="flex-1 bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition font-medium text-sm flex items-center justify-center gap-2"
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition font-medium text-sm flex items-center justify-center gap-2 cursor-pointer"
                   >
                     📋 Copy Code
                   </button>
                   <button 
                     onClick={() => handleDownload(item.html, item.title)} 
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 rounded-xl transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 rounded-xl transition font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 cursor-pointer"
                   >
                     📥 Download HTML
                   </button>
@@ -204,13 +207,8 @@ async function Genarate() {
               </div>
             );
           })}
-        </div>  
+        </div> 
       )}
     </div>
   );
-}
-
- 
-
- 
-
+} 
